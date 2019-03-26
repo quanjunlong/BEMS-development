@@ -249,8 +249,8 @@ early_stopping <- callback_early_stopping(
 
 history <- model %>% fit(
     train_x, train_y, 
-    epochs = 10,
-    batch_size = 200,
+    epochs = 100,
+    batch_size = 100,
     callbacks = early_stopping, 
     #shuffle=T,
     validation_split = 0.2) # fit
