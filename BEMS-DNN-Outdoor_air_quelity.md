@@ -3,7 +3,9 @@ title: "BEMS-DNN-Outdoor air quelity"
 author: "quan junlong"
 date: "2019-03-25"
 first up date:
-output:  html_document
+output: 
+    html_document:
+        keep_md: true 
 ---
 
 ### 기상청 데이터를 활용한 전력소비량 예측
@@ -12,15 +14,13 @@ output:  html_document
 + ####전력 데이터: 1시간 단위 전력데이터  
 
 __________________________
-```{r, include= F}
-knitr::opts_chunk$set(message=FALSE, warning=FALSE, fig.width=13)
-```
+
 
 
 ##### 1. 패키지 붙이기
 
-```{r, warning=FALSE, message=FALSE}
 
+```r
 library(dplyr);#데이터 전처리
 library(tidyr);#피벗데이블 처리
 library(ggplot2);#그래프그리기
@@ -43,8 +43,8 @@ library(NeuralNetTools); #신경망을 위한 시각화 및 분석 도구
 __________________________
 ##### 2. 전력데이터 불러오기 및 처리
 
-```{r}
 
+```r
 rawdata = read.table(
     file="C:/RDATA/EANBEMSDATA.txt", 
     header=TRUE, 
@@ -99,15 +99,16 @@ df5 <- df4 %>% fill(diff,.direction = "up")#NA값 처리
 df6 <- df5 %>% mutate(date = as.POSIXct(T_DATETIME),by = "hour")
 
 boxplot(df5$diff) #극단 값 확인
+```
 
-```  
+![](BEMS-DNN-Outdoor_air_quelity_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 ______________________________________________
 ##### 3. 기상청데이터 불러오기 및 처리 
 
 
-```{r}
 
+```r
 T_rawdata <- read.csv(
     file="C:/RDATA/기상청 데이터.csv", header=FALSE
     ) #데이터 불러오기
@@ -160,14 +161,13 @@ andf7 <- andf6 %>% select(-c(time,weekdays,C_DESC)) #변수추출
 andf8 <- andf7 %>% mutate(
     temperature= as.numeric(as.character(temperature))
     )#캐릭터,뉴메릭변환 
-
 ```
 
 ____________________________
 ##### 4. 데이터 정리  
 
-```{r}
 
+```r
 normalize <- function (x) {
     normalized = (x - min(x)) / (max(x) - min(x))
     return(normalized)}#데이터정규화함수
@@ -179,14 +179,13 @@ andf9 <- andf8 %>% mutate(temperature = (normalize(andf8[,1]))) #데이터 정�
 andf10 <- select(andf9, diff, everything()) #데이터순서변경
 
 andf10<- andf10%>% select(-c(3:14,28,29,30,31,32,33,34,37))#변수삭제
-
 ```
 
 ____________________________________
 ##### 5.데이터 분할
 
-```{r}
 
+```r
 ann <- createDataPartition(y=andf10$diff, p=0.99, list=FALSE) #데이터 분할
 
 train <- andf10[ann,]#데이터 분할
@@ -208,14 +207,13 @@ dimnames(train_x) <- NULL; dimnames(train_y) <- NULL #행렬
 test_x <- as.matrix(test_x); test_y <- as.matrix(test_y)#매트릭스구조
 
 dimnames(test_x) <- NULL; dimnames(test_y) <- NULL #행렬
-
 ```
 
 _______________________________
 ##### 6.DNN  
 
-```{r}
 
+```r
 set.seed(0) #시드고정
 
 model <- keras_model_sequential() #모델초기화 
@@ -248,24 +246,30 @@ history <- model %>% fit(
     callbacks = early_stopping, 
     #shuffle=T,
     validation_split = 0.2) # fit
-
 ```
 
 ____________________________
 ##### 7. 학습결과
 
-```{r}
 
+```r
 test_y1<- predict(model,test_x) #평균 제곱근 편차
 model %>% evaluate(test_x, test_y) # 정확도
+```
 
+```
+## $loss
+## [1] 4.307076
+## 
+## $mean_absolute_error
+## [1] 1.255815
 ```
 
 ___________________________________
 ##### 8. 예측값 처리 및 결과분석  
 
-```{r}
 
+```r
 test_y1 <- round(test_y1) #반옿림
 
 compare <- as.data.frame(cbind(test_y, test_y1))
@@ -273,23 +277,51 @@ compare <- as.data.frame(cbind(test_y, test_y1))
 error <- compare$V1 - compare$V2
 
 sum(error)
+```
 
+```
+## [1] 22
+```
+
+```r
 sum(compare$V1)
+```
+
+```
+## [1] 338
+```
+
+```r
 sum(compare$V2)
+```
 
+```
+## [1] 316
+```
 
+```r
 rmse<-  sqrt(mean(error^2))#RMSE
 
 sqrt(mean(error^2))#RMSE
-rmse/mean(compare$V2) #CV변동계수
+```
 
+```
+## [1] 2.087377
+```
+
+```r
+rmse/mean(compare$V2) #CV변동계수
+```
+
+```
+## [1] 0.7398298
 ```
 
 _______________________
 #####9.예측그래프
 
-```{r}
 
+```r
 ggplot(data=compare, aes(x=c(1:112)))+
     geom_line(aes(y = V1), colour= "blue")+
     geom_point(aes(y = V1), colour= "blue")+
@@ -299,6 +331,7 @@ ggplot(data=compare, aes(x=c(1:112)))+
     scale_x_continuous(breaks=seq(0, 112, 1))+
     theme(panel.grid = element_blank())+
     theme(panel.grid.major = element_line(color = "white"))
-
 ```
+
+![](BEMS-DNN-Outdoor_air_quelity_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
