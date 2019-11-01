@@ -1,0 +1,26 @@
+
+#Java 설치
+FROM bridg/java8
+
+# 타임존 서울로 설정 후 적용
+# ENV TZ=Asia/Seoul 
+
+#톰캣 설치
+ADD http://apache.mirror.cdnetworks.com/tomcat/tomcat-8/v8.5.47/bin/apache-tomcat-8.5.47.tar.gz .
+RUN ["tar", "-zxvf", "/apache-tomcat-8.5.47.tar.gz"]
+
+#기존 tomcat root 경로삭제
+RUN rm -rf /apache-tomcat-8.5.47/webapps/ROOT
+
+#war파일 복사 및 root 경로에 지정 
+COPY kictbems.war /apache-tomcat-8.5.47/webapps/ROOT.war
+
+#실행파일 폴더로 이동 및 톰캣 실행
+WORKDIR "/apache-tomcat-8.5.47" 
+ENTRYPOINT ["sh", "/apache-tomcat-8.5.47/bin/catalina.sh","run"]
+
+# 서버타입 설정, 프로퍼티 파일로 개발 운영 환경 구분..
+# ENV JAVA_OPTS="-Dserver.type=dev"
+
+#접속포트 설정
+EXPOSE 8080
